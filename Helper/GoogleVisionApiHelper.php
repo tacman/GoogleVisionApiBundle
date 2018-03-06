@@ -128,47 +128,22 @@ class GoogleVisionApiHelper
     }
 
     /**
-     * @param $image
-     * @param null $type
+     * @param string $image
+     * @param array $type
      * @return array
      */
-    public function vision($image, $type = null){
+    public function vision($image, $types = []){
+
         if (preg_match("#^https?://.+#", $image) || substr($image,0,1) == '/') {
             $data               = file_get_contents($image);
             $base64Image        = base64_encode($data);
-        }else{
+        }
+        else{
             $mediaBase64        = explode(";",  $image);
             $base64Image        = explode(",",  $mediaBase64[1]);
         }
 
-        switch ($type) {
-            case self::TYPE_UNSPECIFIED:
-                return $this->_request($base64Image, $type);
-                break;
-            case self::FACE_DETECTION:
-                return $this->_request($base64Image, $type);
-                break;
-            case self::LANDMARK_DETECTION:
-                return $this->_request($base64Image, $type);
-                break;
-            case self::LOGO_DETECTION:
-                return $this->_request($base64Image, $type);
-                break;
-            case self::LABEL_DETECTION:
-                return $this->_request($base64Image, $type);
-                break;
-            case self::TEXT_DETECTION:
-                return $this->_request($base64Image, $type);
-                break;
-            case self::SAFE_SEARCH_DETECTION:
-                return $this->_request($base64Image, $type);
-                break;
-            case self::IMAGE_PROPERTIES:
-                return $this->_request($base64Image, $type);
-                break;
-            default:
-                return $this->_request($base64Image, $type);
-        }
+        return $this->_request($base64Image, $types);
     }
 
     /**
