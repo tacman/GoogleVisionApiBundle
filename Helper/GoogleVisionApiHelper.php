@@ -27,6 +27,7 @@ class GoogleVisionApiHelper
     const TEXT_DETECTION         = 'TEXT_DETECTION';
     const SAFE_SEARCH_DETECTION  = 'SAFE_SEARCH_DETECTION';
     const IMAGE_PROPERTIES       = 'IMAGE_PROPERTIES';
+    const WEB_DETECTION          = 'WEB_DETECTION';
 
 
     /**
