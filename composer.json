@@ -1,5 +1,5 @@
 {
-    "name": "headoo/google-vision-api-bundle",
+    "name": "vladciulley/google-vision-api-bundle",
     "type": "symfony-bundle",
     "description": "Google Vision Api Bundle",
     "homepage": "https://github.com/Headoo/GoogleVisionApiBundle",
