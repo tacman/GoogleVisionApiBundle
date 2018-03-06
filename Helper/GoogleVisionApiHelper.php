@@ -2,8 +2,8 @@
 
 namespace Headoo\GoogleVisionApiBundle\Helper;
 
+
 use Headoo\GoogleVisionApiBundle\Handler\GoogleVisionApiHandler;
-use \Exception;
 
 class GoogleVisionApiHelper
 {
@@ -27,7 +27,6 @@ class GoogleVisionApiHelper
     const TEXT_DETECTION         = 'TEXT_DETECTION';
     const SAFE_SEARCH_DETECTION  = 'SAFE_SEARCH_DETECTION';
     const IMAGE_PROPERTIES       = 'IMAGE_PROPERTIES';
-    const WEB_DETECTION          = 'WEB_DETECTION';
 
 
     /**
@@ -44,7 +43,12 @@ class GoogleVisionApiHelper
      * @param $type
      * @return array
      */
-    private function _request($base64Image, $type){
+    private function _request($base64Image, $types){
+
+        if (empty($types)) {
+            throw new \InvalidArgumentException('Type missing from request.');
+        }
+
         $url    = $this->_url . $this->_api_key;
         $json   ='{
 			  	"requests": [
@@ -52,12 +56,23 @@ class GoogleVisionApiHelper
 					  "image": {
 					    "content":"' .$base64Image. '"
 					  },
-					  "features": [
-					      {
-					      	"type": "' .$type. '",
-							"maxResults": 200
-					      }
-					  ]
+					  "features": [';
+
+        $lastType = end($types);
+
+        foreach ($types as $type) {
+
+            $json .= '
+                            {
+                                "type": "' .$type. '",
+                                "maxResults": 200
+                            }';
+            if ($type !== $lastType) {
+                $json .= ',';
+            }
+        }
+
+        $json .= '    ]
 					}
 				]
 			}';
@@ -66,18 +81,22 @@ class GoogleVisionApiHelper
         $jsonResponse               = json_decode($data['raw_response']);
 
         if($data['http_code'] !== 200){
-            $data['status']         = $jsonResponse->error->status;
-            $data['message']        = $jsonResponse->error->message;
-            $data['error']          = $jsonResponse->error;
+            $data['status']          = $jsonResponse->error->status;
+            $data['message']         = $jsonResponse->error->message;
+            $data['error']           = $jsonResponse->error;
+            $data['parsed_response'] = [];
         }else{
-            $_type                  = strtolower($type);
-            $_type                  = str_replace('_', ' ', $_type);
-            $_type                  = ucwords($_type);
-            $_type                  = str_replace(' ', '', $_type);
-            $parseFunction          = '_parse' . $_type;
 
-            $data['parsed_response']= $this->$parseFunction($jsonResponse->responses[0]);
-            $data['raw_response']   = $jsonResponse->responses;
+            foreach ($types as $type) {
+                $_type                  = strtolower($type);
+                $_type                  = str_replace('_', ' ', $_type);
+                $_type                  = ucwords($_type);
+                $_type                  = str_replace(' ', '', $_type);
+                $parseFunction          = '_parse' . $_type;
+                $data['parsed_response'][$type] = $this->$parseFunction($jsonResponse->responses[0]);
+            }
+
+            $data['raw_response'] = $jsonResponse->responses;
         }
 
         return $data;
@@ -115,29 +134,10 @@ class GoogleVisionApiHelper
      */
     public function vision($image, $type = null){
         if (preg_match("#^https?://.+#", $image) || substr($image,0,1) == '/') {
-            $data = @file_get_contents($image);
-
-            // check file_get_contents failed
-            if ($data === false) {
-                throw new Exception(sprintf('file_get_contents() failed on “%s”', $image));
-            }
-
-            //  check if file_get_contents returns a valid image
-            
-            if (!is_resource(@imagecreatefromstring($data))) {
-                throw new Exception(sprintf('imagecreatefromstring() failed on “%s”', $image));
-            }
-
+            $data               = file_get_contents($image);
             $base64Image        = base64_encode($data);
-
         }else{
             $mediaBase64        = explode(";",  $image);
-
-            // Check Undefined offset: 1
-            if (!array_key_exists(1, $mediaBase64)) {
-                throw new Exception("Undefined offset: 1");
-            }
-
             $base64Image        = explode(",",  $mediaBase64[1]);
         }
 
@@ -166,11 +166,8 @@ class GoogleVisionApiHelper
             case self::IMAGE_PROPERTIES:
                 return $this->_request($base64Image, $type);
                 break;
-            case self::WEB_DETECTION:
-                return $this->_request($base64Image, $type);
-                break;
             default:
-                return $this->_request($base64Image, 'TYPE_UNSPECIFIED');
+                return $this->_request($base64Image, $type);
         }
     }
 
@@ -254,20 +251,6 @@ class GoogleVisionApiHelper
             }
         }
         return $_textAnnotations;
-    }
-
-    /**
-     * @param $response
-     * @return array
-     */
-    private function _parseWebDetection($response){
-        $_webDetection = [];
-
-        if(isset($response->webDetection)){
-            $_webDetection = GoogleVisionApiHandler::objectifyWebDetection($response->webDetection);
-        }
-
-        return $_webDetection;
     }
 
     /**
